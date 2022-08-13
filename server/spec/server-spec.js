@@ -16,12 +16,14 @@ describe('Persistent Node Chat Server', () => {
   beforeAll((done) => {
     dbConnection.connect();
 
-    const tablename = 'messages'; // TODO: fill this out
+    const tablename = 'messages';
+    const userTable = 'users';// TODO: fill this out
 
     /* Empty the db table before all tests so that multiple tests
      * (or repeated runs of the tests)  will not fail when they should be passing
      * or vice versa */
     dbConnection.query(`truncate ${tablename}`, done);
+    dbConnection.query(`truncate ${userTable}`, done);
   }, 6500);
 
   afterAll(() => {
@@ -136,6 +138,55 @@ describe('Persistent Node Chat Server', () => {
           const userLog = response.data;
           console.log(userLog);
           expect(userLog[2].username).toEqual('Birb');
+          done();
+        })
+        .catch((err) => {
+          throw err;
+        });
+    });
+  });
+
+
+  it('Should delete specific user from the DB', (done) => {
+    const username = 'Doggo';
+    const queryString = `DELETE FROM users WHERE username = '${username}';`;
+    const queryArgs = [];
+
+    dbConnection.query(queryString, queryArgs, (err) => {
+      if (err) {
+        throw err;
+      }
+
+      // Now query the Node chat server and see if it returns the message we just inserted:
+      axios.get(`${API_URL}/users`)
+        .then((response) => {
+          const userLog = response.data;
+          console.log(userLog);
+          expect(userLog.length).toEqual(2);
+          done();
+        })
+        .catch((err) => {
+          throw err;
+        });
+    });
+  });
+
+  it('Should delete all messages from the DB', (done) => {
+
+    const queryString = 'DELETE FROM messages;';
+    const queryArgs = [];
+
+    dbConnection.query(queryString, queryArgs, (err) => {
+      if (err) {
+        throw err;
+      }
+
+      // Now query the Node chat server and see if it returns the message we just inserted:
+      axios.get(`${API_URL}/messages`)
+        .then((response) => {
+          const userLog = response.data;
+          console.log(userLog);
+          expect(userLog.length).toEqual(0);
           done();
         })
         .catch((err) => {
