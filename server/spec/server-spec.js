@@ -8,6 +8,7 @@ const API_URL = 'http://127.0.0.1:3000/classes';
 
 describe('Persistent Node Chat Server', () => {
   const dbConnection = mysql.createConnection({
+    host: 'localhost',
     user: 'root',
     database: 'chat',
   });
@@ -28,9 +29,9 @@ describe('Persistent Node Chat Server', () => {
   });
 
   it('Should insert posted messages to the DB', (done) => {
-    const username = 'Valjean';
-    const message = 'In mercy\'s name, three days is all I need.';
-    const roomname = 'Hello';
+    var username = 'Valjean';
+    var message = 'In mercy\'s name, three days is all I need.';
+    var roomname = 'Hello';
     // Create a user on the chat server database.
     axios.post(`${API_URL}/users`, { username })
       .then(() => {
@@ -64,8 +65,8 @@ describe('Persistent Node Chat Server', () => {
 
   it('Should output all messages from the DB', (done) => {
     // Let's insert a message into the db
-    const queryString = 'INSERT INTO messages (message) VALUES ("Hello");';
-    const queryArgs = [];
+    const queryString = 'INSERT INTO messages (username, message, roomname) VALUES (?, ?, ?);';
+    const queryArgs = ['Cat', 'Sup', 'Hello'];
     /* TODO: The exact query string and query args to use here
      * depend on the schema you design, so I'll leave them up to you. */
     dbConnection.query(queryString, queryArgs, (err) => {
@@ -77,8 +78,64 @@ describe('Persistent Node Chat Server', () => {
       axios.get(`${API_URL}/messages`)
         .then((response) => {
           const messageLog = response.data;
-          expect(messageLog[0].message).toEqual(message);
-          expect(messageLog[0].roomname).toEqual(roomname);
+          expect(messageLog[1].message).toEqual('Sup');
+          expect(messageLog[1].roomname).toEqual('Hello');
+          done();
+        })
+        .catch((err) => {
+          throw err;
+        });
+    });
+  });
+
+  it('Should insert new user to the DB', (done) => {
+    var username = 'Doggo';
+    var message = 'SOS';
+    var roomname = 'Hello';
+
+    axios.post(`${API_URL}/messages`, { username, message, roomname })
+      .then(() => {
+
+        return axios.post(`${API_URL}/users`, { username });
+      })
+      .then(() => {
+
+        const queryString = 'SELECT * FROM users';
+        const queryArgs = [];
+
+        dbConnection.query(queryString, queryArgs, (err, results) => {
+          if (err) {
+            throw err;
+          }
+          // // Should have one result:
+          // expect(results.length).toEqual(1);
+
+          // TODO: If you don't have a column named text, change this test.
+          expect(results[1].username).toEqual('Doggo');
+          done();
+        });
+      })
+      .catch((err) => {
+        throw err;
+      });
+  });
+
+  it('Should output all users from the DB', (done) => {
+
+    const queryString = 'INSERT INTO users (username) VALUE ("Birb");';
+    const queryArgs = [];
+
+    dbConnection.query(queryString, queryArgs, (err) => {
+      if (err) {
+        throw err;
+      }
+
+      // Now query the Node chat server and see if it returns the message we just inserted:
+      axios.get(`${API_URL}/users`)
+        .then((response) => {
+          const userLog = response.data;
+          console.log(userLog);
+          expect(userLog[2].username).toEqual('Birb');
           done();
         })
         .catch((err) => {
